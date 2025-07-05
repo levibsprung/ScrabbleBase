@@ -79,7 +79,7 @@ class ScrabbleGame:
             
         self.setTileInfo(tileFile)
         
-    def countPlay(self, startPair: tuple, endPair: tuple) -> int:
+    def countPlay(self, startPair: tuple, endPair: tuple, board: list[list[str]] = None, returnTilesPlayed: bool = False):
         """
         Counts the score of a play given the start and end coordinates of the move,
         the current board state, and the tile values.
@@ -94,11 +94,15 @@ class ScrabbleGame:
             tuple: total score for the play and the updated board state TODO fix
         """
         
+        if board is None:
+            board = self.currentBoard
+        
         # start scores at 0, tiles at 0, and multiplier at 1
         score = 0
         nonModifiedScore = 0
         multiplier = 1
         tilesUsed = 0
+        tilesUsedList = []
         
         # converts coordinates with vertical boolean (true for vertical, false for horizontal)
         vert, basis, start, end = self.coordsToVertBoolAndCoords(startPair, endPair)
@@ -109,7 +113,7 @@ class ScrabbleGame:
             tempMultiplier = 1
             # sets current tile coordinates and gets tile from board
             coords = (i, basis) if vert else (basis, i)
-            tile = self.currentBoard[coords[0]][coords[1]]
+            tile = board[coords[0]][coords[1]]
             
             # check if tile is already placed (adds tile to score without multipliers if so)
             if self.isTile(tile):
@@ -118,13 +122,15 @@ class ScrabbleGame:
             
             # tile is placed, so one more tile used, and need to check for intersections
             tilesUsed += 1
+            tilesUsedList.append(coords)
             adjacency1 = ((i, basis-1) if vert else (basis-1, i)) if basis > 0 else None
             adjacency2 = ((i, basis+1) if vert else (basis+1, i)) if basis < 14 else None
             
             # check for modifiers at placed tile (should be applied to current word and intersections)
-            mod = self.currentBoard[coords[0]][coords[1]]
+            mod = board[coords[0]][coords[1]]
             newTile = self.completedGame[coords[0]][coords[1]]
-            self.tileBag.remove(newTile)
+            if not returnTilesPlayed:
+                self.tileBag.remove(newTile)
             value = self.tileValues[newTile]
             if 'd' in mod:
                 value *= 2
@@ -135,14 +141,17 @@ class ScrabbleGame:
             elif '3' in mod:
                 tempMultiplier = 3
             multiplier *= tempMultiplier
-            if (adjacency1 and self.isTile(self.currentBoard[adjacency1[0]][adjacency1[1]])) or \
-                (adjacency2 and self.isTile(self.currentBoard[adjacency2[0]][adjacency2[1]])):
-                nonModifiedScore += tempMultiplier*(value + self.countWord(coords, not vert, self.currentBoard))
+            if (adjacency1 and self.isTile(board[adjacency1[0]][adjacency1[1]])) or \
+                (adjacency2 and self.isTile(board[adjacency2[0]][adjacency2[1]])):
+                nonModifiedScore += tempMultiplier*(value + self.countWord(coords, not vert, board))
             score += value
 
-            self.currentBoard[coords[0]][coords[1]] = self.completedGame[coords[0]][coords[1]]
+            board[coords[0]][coords[1]] = self.completedGame[coords[0]][coords[1]]
         bingo = 50 if tilesUsed > 6 else 0
-        return score * multiplier + nonModifiedScore + bingo
+        moveScore = score * multiplier + nonModifiedScore + bingo
+        if returnTilesPlayed:
+            return moveScore, tilesUsedList
+        return moveScore
     
     def countWord(self, startCoords: tuple, vert: str, gameBoard: list[list[str]]) -> int:
         """Counts the score of a word placed on the board, starting from the given coordinates and without
@@ -235,42 +244,43 @@ class ScrabbleGame:
         return tile.isupper() or tile == '_'
 
 
-moves = [
-    ((7,2),(7,8)),
-    ((5,9),(8,9)),
-    ((4,10),(6,10)),
-    ((8,6),(8,7)),
-    ((2,11),(5,11)),
-    ((9,4),(9,7)),
-    ((6,2),(8,2)),
-    ((6,2),(6,4)),
-    ((5,3),(5,5)),
-    ((4,4),(4,7)),
-    ((2,8),(4,8)),
-    ((3,6),(3,9)),
-    ((0,9),(3,9)),
-    ((10,0),(10,4)),
-    ((7,0),(14,0)),
-    ((12,1),(13,1)),
-    ((8,10),(11,10)),
-    ((12,8),(12,11)),
-    ((10,12),(13,12)),
-    ((9,13),(10,13)),   
-    ((10,14),(14,14)),
-    ((13,3),(13,9)),
-    ((14,6),(14,8)),
-    ((2,11),(2,13)),
-    ((9,9),(9,11)),
-    ((11,3),(11,5)),
-    ((0,9),(0,11)),    
-]
+if __name__ == "__main__":
+    moves = [
+        ((7,2),(7,8)),
+        ((5,9),(8,9)),
+        ((4,10),(6,10)),
+        ((8,6),(8,7)),
+        ((2,11),(5,11)),
+        ((9,4),(9,7)),
+        ((6,2),(8,2)),
+        ((6,2),(6,4)),
+        ((5,3),(5,5)),
+        ((4,4),(4,7)),
+        ((2,8),(4,8)),
+        ((3,6),(3,9)),
+        ((0,9),(3,9)),
+        ((10,0),(10,4)),
+        ((7,0),(14,0)),
+        ((12,1),(13,1)),
+        ((8,10),(11,10)),
+        ((12,8),(12,11)),
+        ((10,12),(13,12)),
+        ((9,13),(10,13)),   
+        ((10,14),(14,14)),
+        ((13,3),(13,9)),
+        ((14,6),(14,8)),
+        ((2,11),(2,13)),
+        ((9,9),(9,11)),
+        ((11,3),(11,5)),
+        ((0,9),(0,11)),    
+    ]
 
-game = ScrabbleGame()
-game.setBoardAndScores("scores1.txt", "tileInfo.json", "board.csv", "Game1.csv")
+    game = ScrabbleGame()
+    game.setBoardAndScores("scores1.txt", "tileInfo.json", "board.csv", "Game1.csv")
 
-for move in moves:
-    v1 = game.countPlay(*move)
-    print(v1)
-print(-game.tileBagScore())
-print(game.tileBagScore())
+    for move in moves:
+        v1 = game.countPlay(*move)
+        print(v1)
+    print(-game.tileBagScore())
+    print(game.tileBagScore())
 
