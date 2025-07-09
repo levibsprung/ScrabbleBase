@@ -31,7 +31,7 @@ class ScrabbleGame:
         Args:
             boardFile (str, optional): CSV file containing empty board layout. Defaults to "board.csv".
         """
-        with open(boardFile, newline="", encoding='utf-8-sig') as csvfile:
+        with open(boardFile, newline="", encoding='utf-8') as csvfile:
             reader = csv.reader(csvfile)
             self.emptyBoard = [row for row in reader]
             self.currentBoard = copy.deepcopy(self.emptyBoard)
@@ -206,6 +206,49 @@ class ScrabbleGame:
         
         return sum(self.tileValues.get(tile, 0) for tile in self.tileBag)
     
+    def makeAntiBoard(self, board: list[list[str]]) -> list[list[str]]:
+        antiBoard = []
+        for i in range(len(board)):
+            antiBoard.append([tile if tile == "" else " " for tile in board[i]])
+        for i in range(len(self.completedGame)):
+            for j in range(len(self.completedGame[0])):
+                if self.isTile(self.completedGame[i][j]) and not self.isTile(board[i][j]):
+                    antiBoard[i][j] = self.completedGame[i][j]
+                else:
+                    antiBoard[i][j] = "x"
+        return antiBoard
+    
+    def isTileToBePlaced(self, coords: tuple, board: list[list[str]]) -> bool:
+        """
+        Checks if a tile at the given coordinates is to be placed (i.e., it is not already placed on the board).
+        
+        Args:
+            coords (tuple): coordinates of the tile (x, y)
+            board (list[list[str]]): current state of the board
+            
+        Returns:
+            bool: True if the square is a tile yet to be placed, False otherwise
+        """
+        return self.isTile(self.makeAntiBoard(board)[coords[0]][coords[1]])
+    
+    
+    def getTileSet(self, board: list[list[str]]) -> set[tuple]:
+        """
+        Returns a set of coordinates of tiles that are currently placed on the board.
+        
+        Args:
+            board (list[list[str]]): current state of the board
+            
+        Returns:
+            set: set of coords of tiles that are currently placed on the board
+        """
+        tileSet = set()
+        for i in range(len(board)):
+            for j in range(len(board[0])):
+                if self.isTile(board[i][j]):
+                    tileSet.add((i, j))
+        return tileSet
+        
 
     # HELPER FUNCTIONS
     @staticmethod
@@ -278,9 +321,17 @@ if __name__ == "__main__":
     game = ScrabbleGame()
     game.setBoardAndScores("scores1.txt", "tileInfo.json", "board.csv", "Game1.csv")
 
-    for move in moves:
+    for row in game.makeAntiBoard(game.currentBoard):
+        print(row)
+
+    for move in moves[:2]:
         v1 = game.countPlay(*move)
         print(v1)
-    print(-game.tileBagScore())
-    print(game.tileBagScore())
+    # print(-game.tileBagScore())
+    # print(game.tileBagScore())
+    
+    # print(game.completedGame)
+    # print(game.currentBoard)
+    for row in game.makeAntiBoard(game.currentBoard):
+        print(row)
 
