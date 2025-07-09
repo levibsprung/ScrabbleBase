@@ -46,7 +46,7 @@ class ScrabbleTraceback(ScrabbleGame):
                 if self.isTile(board[i][j]):
                     moves = self.searchMoves((i, j), board, antiBoard, score)
             
-    def searchMoves(self, startingCoords: tuple[int, int], board: list[list[str]], targetScore: int):
+    def searchMoves(self, startingCoords: tuple[int, int], board: list[list[str]], targetScore: int, isAdjacent: bool = False, firstMove: bool = False) -> set[tuple[tuple[int, int], tuple[int, int]]]:
         xBase, yBase = startingCoords
         
         leftBound = xBase
@@ -58,6 +58,19 @@ class ScrabbleTraceback(ScrabbleGame):
         antiBoardSet = self.getTileSet(self.makeAntiBoard(board))
         completedGameSet = self.getTileSet(self.completedGame)
         movesPlayedSet = set()
+        
+        # # different logic for first move
+        # if firstMove:
+            
+        #     if (xBase, yBase) != self.START_COORDS:
+        #         return set()
+            
+        #     for i in range(xBase - 1, -1, -1):
+        #         if (i, yBase) in antiBoardSet:
+        #             leftBound = i
+        #         if not (i, yBase) in completedGameSet:
+        #             break
+            
         
         if xBase == 0:
             leftBound = 0
@@ -98,7 +111,7 @@ class ScrabbleTraceback(ScrabbleGame):
                 if not (xBase, i) in completedGameSet:
                     break
         
-        if yBase == len(board[0] + 1):
+        if yBase == len(board[0]) + 1:
             upperBound = board[0] + 1    
         for i in range(yBase + 1, len(board[0])):
             if (xBase, i) in antiBoardSet:
@@ -112,10 +125,25 @@ class ScrabbleTraceback(ScrabbleGame):
                     continue
                 if not (i <= yBase <= j):
                     continue
-                resultingScore, tilesUsed = self.countPlay((xBase, i), (xBase, j), board, False)
+                resultingScore, tilesUsed = self.countPlay((xBase, i), (xBase, j), board, True)
                 if resultingScore == targetScore and ((xBase, i), (xBase, j)) not in movesPlayedSet:
                     movesPlayedSet.add(((xBase, i), (xBase, j)))
-                    
+        
+        if not isAdjacent:
+            # check for parallel plays
+            if xBase > 0 and not self.isTile(board[xBase - 1][yBase]):
+                leftMoveSet = self.searchMoves((xBase - 1, yBase), board, targetScore, True)
+                movesPlayedSet.update(leftMoveSet)
+            if xBase < len(board) - 1 and not self.isTile(board[xBase + 1][yBase]):
+                rightMoveSet = self.searchMoves((xBase + 1, yBase), board, targetScore, True)
+                movesPlayedSet.update(rightMoveSet)
+            if yBase > 0 and not self.isTile(board[xBase][yBase - 1]):
+                upMoveSet = self.searchMoves((xBase, yBase - 1), board, targetScore, True)
+                movesPlayedSet.update(upMoveSet)
+            if yBase < len(board[0]) - 1 and not self.isTile(board[xBase][yBase + 1]):
+                downMoveSet = self.searchMoves((xBase, yBase + 1), board, targetScore, False)
+                movesPlayedSet.update(downMoveSet)
+        
         return movesPlayedSet
         
         
@@ -219,7 +247,43 @@ class ScrabbleTraceback(ScrabbleGame):
         
     
             
-    
+moves = [
+        ((7,2),(7,8)),
+        ((5,9),(8,9)),
+        ((4,10),(6,10)),
+        ((8,6),(8,7)),
+        ((2,11),(5,11)),
+        ((9,4),(9,7)),
+        ((6,2),(8,2)),
+        ((6,2),(6,4)),
+        ((5,3),(5,5)),
+        ((4,4),(4,7)),
+        ((2,8),(4,8)),
+        ((3,6),(3,9)),
+        ((0,9),(3,9)),
+        ((10,0),(10,4)),
+        ((7,0),(14,0)),
+        ((12,1),(13,1)),
+        ((8,10),(11,10)),
+        ((12,8),(12,11)),
+        ((10,12),(13,12)),
+        ((9,13),(10,13)),   
+        ((10,14),(14,14)),
+        ((13,3),(13,9)),
+        ((14,6),(14,8)),
+        ((2,11),(2,13)),
+        ((9,9),(9,11)),
+        ((11,3),(11,5)),
+        ((0,9),(0,11)),    
+    ]    
 
 traceback = ScrabbleTraceback()
 
+traceback.setBoardAndScores("scores1.txt", "tileInfo.json", "board.csv", "Game1.csv")
+
+# for move in moves[:3]:
+#     v1 = traceback.countPlay(*move)
+#     print(v1)
+
+
+print(traceback.searchMoves((7,7), traceback.currentBoard, 70))

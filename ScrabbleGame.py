@@ -96,6 +96,9 @@ class ScrabbleGame:
         
         if board is None:
             board = self.currentBoard
+        else:
+            oldBoard = board
+            board = copy.deepcopy(board)
         
         # start scores at 0, tiles at 0, and multiplier at 1
         score = 0
@@ -129,6 +132,11 @@ class ScrabbleGame:
             # check for modifiers at placed tile (should be applied to current word and intersections)
             mod = board[coords[0]][coords[1]]
             newTile = self.completedGame[coords[0]][coords[1]]
+            
+            if not self.isTile(newTile):
+                # if it is not a tile, it is an invalid move
+                return (-1, []) if returnTilesPlayed else -1
+            
             if not returnTilesPlayed:
                 self.tileBag.remove(newTile)
             value = self.tileValues[newTile]
@@ -151,6 +159,7 @@ class ScrabbleGame:
         moveScore = score * multiplier + nonModifiedScore + bingo
         if returnTilesPlayed:
             return moveScore, tilesUsedList
+        # TODO: something with the board
         return moveScore
     
     def countWord(self, startCoords: tuple, vert: str, gameBoard: list[list[str]]) -> int:
