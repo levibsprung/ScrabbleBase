@@ -2,17 +2,25 @@ import csv
 import copy
 import json
 
-FAILURE_MESSAGE = "No solution found. My bad"
 
 class ScrabbleGame:
+    """ 
+    Base class for Scrabble game logic. Contains methods to read game data from files along with 
+    scoring algorithms and helper functions for other capabilities.
+    """
     
     def __init__(self):
+        
+        
         self.moveScores = None
         self.completedGame = None
         self.tileValues = None
         self.tileCounts = None
         self.tileBag = None
         self.emptyBoard = None
+        
+        self.FAILURE_MESSAGE = "No solution found. My bad"
+
         
         self.currentBoard = None
         
