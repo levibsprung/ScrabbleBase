@@ -31,7 +31,7 @@ class ScrabbleGame:
         Args:
             boardFile (str, optional): CSV file containing empty board layout. Defaults to "board.csv".
         """
-        with open(boardFile, newline="", encoding='utf-8') as csvfile:
+        with open(boardFile, newline="", encoding='utf-8-sig') as csvfile:
             reader = csv.reader(csvfile)
             self.emptyBoard = [row for row in reader]
             self.currentBoard = copy.deepcopy(self.emptyBoard)
@@ -79,7 +79,27 @@ class ScrabbleGame:
             
         self.setTileInfo(tileFile)
         
-    def countPlay(self, startPair: tuple, endPair: tuple, board: list[list[str]] = None, returnTilesPlayed: bool = False):
+    def getTileBag(self) -> list[str]:
+        """Produces the tile bag based on the tiles placed on the board and the original tile counts.
+
+        Returns:
+            list[str]: List of tiles in the tile bag.
+        """
+        if not self.tileBag:
+            return None
+        
+        # create a copy of the tile bag
+        tileBag = copy.deepcopy(self.tileBag)
+        
+        # remove tiles that are already placed on the board
+        for row in self.currentBoard:  
+            for tile in row:
+                if self.isTile(tile) and tile in tileBag:
+                    tileBag.remove(tile)
+                    
+        return tileBag
+        
+    def countPlay(self, startPair: tuple, endPair: tuple, board: list[list[str]] = None, returnTilesPlayed: bool = False, returnBoard: bool = False):
         """
         Counts the score of a play given the start and end coordinates of the move,
         the current board state, and the tile values.
@@ -97,7 +117,6 @@ class ScrabbleGame:
         if board is None:
             board = self.currentBoard
         else:
-            oldBoard = board
             board = copy.deepcopy(board)
         
         # start scores at 0, tiles at 0, and multiplier at 1
@@ -137,8 +156,6 @@ class ScrabbleGame:
                 # if it is not a tile, it is an invalid move
                 return (-1, []) if returnTilesPlayed else -1
             
-            if not returnTilesPlayed:
-                self.tileBag.remove(newTile)
             value = self.tileValues[newTile]
             if 'd' in mod:
                 value *= 2
@@ -159,7 +176,8 @@ class ScrabbleGame:
         moveScore = score * multiplier + nonModifiedScore + bingo
         if returnTilesPlayed:
             return moveScore, tilesUsedList
-        # TODO: something with the board
+        if returnBoard:
+            return moveScore, board
         return moveScore
     
     def countWord(self, startCoords: tuple, vert: str, gameBoard: list[list[str]]) -> int:
